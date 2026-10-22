@@ -14,6 +14,7 @@ final class SqliteTargetWriter implements TargetWriter
     }
     public function initialize(): void
     {
+        Sqlite::requireJournal($this->pdo);
         $this->pdo->exec('CREATE TABLE IF NOT EXISTS ' . Sqlite::quote(Sqlite::RECEIPTS) . ' (
             scope TEXT NOT NULL, entity TEXT NOT NULL, source_key TEXT NOT NULL,
             target_id TEXT NOT NULL, fingerprint TEXT NOT NULL, destination TEXT NOT NULL,

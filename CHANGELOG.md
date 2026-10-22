@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — journal contract follow-up
+
+- Recheck supported SQLite journal modes before helper initialization and every ID-map put; reused connections switched to OFF fail before mutation.
+- Verify target/receipt rollback and retry in DELETE, TRUNCATE, PERSIST, MEMORY and WAL modes using real temporary SQLite files.
+- Separate in-process exception rollback from process-crash and power-loss durability in both READMEs and security guidance.
+
 ## Unreleased — local first version
 
 - Added PHP 8.2+ PSR-4 core with no runtime Composer dependencies.

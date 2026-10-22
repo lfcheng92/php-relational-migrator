@@ -97,7 +97,7 @@ $repeat = $migrator->run($plan); // 2 条 alreadyMapped
 
 `TargetWriter::write(scope, entity, key, fields)` 的必要契约是：**目标行和该次操作的幂等写入凭据必须在目标端原子持久化**。相同 `(scope, entity, key)`、相同字段重放时必须返回原 ID 和 `inserted=false`；不同字段必须报冲突。一个普通的无保护 INSERT 不满足该接口的语义契约。
 
-SQLite 实现将应用表 INSERT 与 `_relational_migrator_receipts` 写入放在同一 PDO 事务内。因此即使目标提交后进程退出、返回丢失或 `IdMapStore::put()` 失败，下一次运行也能从凭据恢复原 ID 并补存映射。映射也可能已经保存而异常发生在返回前，此时重跑会计为 `alreadyMapped`。不需要也不声称两个任意数据库之间存在共同事务。
+SQLite 实现将应用表 INSERT 与 `_relational_migrator_receipts` 写入放在同一 PDO 事务内。在已提交的数据库记录仍完整保留的前提下，即使目标提交后进程退出、返回丢失或 `IdMapStore::put()` 失败，下一次运行也能从凭据恢复原 ID 并补存映射。映射也可能已经保存而异常发生在返回前，此时重跑会计为 `alreadyMapped`。不需要也不声称两个任意数据库之间存在共同事务。
 
 自定义写入器若无法保证上述目标端原子性，就不能承诺安全自动重试。核心没有跨任意数据库 exactly-once 保证；调用方必须审查适配器、事务存储引擎与外部副作用。测试中的人为抛错验证的是明确的失败路径，不代表真实生产宕机、断电或所有驱动均有相同保证。
 
@@ -128,7 +128,9 @@ $report = (new Migrator($reader, $writer, $maps))->run($authorsPlan);
 
 构造器只校验连接与元数据版本，不建表。应用表由调用方事先准备；SQLite 目标必须用单列主键，并由数据库生成非空 int/string ID，不接受在映射字段中显式赋值该 ID 列。库使用 `INSERT ... RETURNING` 获取真实 ID。禁止把内部帮助表当成目标；列名忽略大小写也必须唯一。
 
-`SqliteTargetWriter` 自己管理每条事务，拒绝外层已开启的目标事务，不会提交或回滚调用方事务。应用表与凭据表必须位于同一 SQLite 数据库；目标及映射存储拒绝 journal_mode=OFF。不要使用会变更返回主键、删除/改写凭据，或产生外部副作用的触发器。目标 schema 的类型亲和性、约束和触发器是调用方职责；库不会复制源列类型或修改目标 schema。
+`SqliteTargetWriter` 自己管理每条事务，拒绝外层已开启的目标事务，不会提交或回滚调用方事务。应用表与凭据表必须位于同一 SQLite 数据库；目标、凭据初始化和每次映射保存都重新读取日志模式，只接受 DELETE / TRUNCATE / PERSIST / MEMORY / WAL；OFF 或未知模式在写入前拒绝，连接初始化后被切换为 OFF 也不能绕过。不要使用会变更返回主键、删除/改写凭据，或产生外部副作用的触发器。目标 schema 的类型亲和性、约束和触发器是调用方职责；库不会复制源列类型或修改目标 schema。
+
+**进程内回滚与崩溃/断电持久性不同。** 日志模式检查及故障注入测试验证的是进程仍在运行时，SQL/映射错误的回滚与重试；本包不更改 `journal_mode`、`synchronous` 或硬件/文件系统设置，也未验证断电恢复。MEMORY 日志仅在 RAM 中，可用于可丢弃的测试数据；文件数据库使用它时，事务中途进程崩溃可能破坏数据库，不能据正常回滚测试宣称崩溃安全。`:memory:` 数据库在连接/进程结束后丢失数据。磁盘持久性还取决于同步设置、操作系统、存储设备和故障模型；例如 `synchronous=OFF` 不提供断电持久性保证。需要可恢复导入时，由应用选择合适的磁盘日志及同步配置，并对自己的环境另行验证。依据见 [SQLite journal_mode](https://www.sqlite.org/pragma.html#pragma_journal_mode) 和 [synchronous](https://www.sqlite.org/pragma.html#pragma_synchronous)。
 
 持久化映射表 `_relational_migrator_id_map` 保存旧键 JSON、新 ID JSON 和指纹。ID 类型与复合键顺序得到保留，映射不可被不同内容覆盖。映射、凭据和源键可能敏感，须限制数据库文件权限与备份访问，详见 [SECURITY.md](SECURITY.md)。
 

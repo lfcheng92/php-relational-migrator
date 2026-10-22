@@ -283,6 +283,75 @@ final class SqliteIntegrationTest extends TestCase
         self::assertSame('1', $maps->get('sqlite-v1', 'items', SourceKey::fromValues([5]))?->targetId);
         self::assertSame(1, $migrator->run($this->plan())->totals()['alreadyMapped']);
     }
+    public function testReusedWriterRejectsDisabledJournalBeforeAnyTargetWrite(): void
+    {
+        $db = $this->db($this->temporaryDatabase());
+        $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $db->exec('PRAGMA journal_mode = OFF');
+        self::assertSame('off', $db->query('PRAGMA journal_mode')->fetchColumn());
+        $failure = $this->failure(fn() => (new Migrator($this->source(), $writer, $maps))->run($this->plan()));
+        self::assertInstanceOf(ConfigurationException::class, $failure->getPrevious());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_receipts')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_id_map')->fetchColumn());
+        self::assertFalse($db->inTransaction());
+        $db->exec('PRAGMA journal_mode = DELETE');
+        self::assertSame(1, (new Migrator($this->source(), $writer, $maps))->run($this->plan())->totals()['inserted']);
+    }
+    public function testReusedMapStoreRejectsDisabledJournalAndCanRecoverReceipt(): void
+    {
+        $db = $this->db($this->temporaryDatabase());
+        $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $key = SourceKey::fromValues([5]);
+        $result = $writer->write('sqlite-v1', $this->plan()->orderedEntities()[0], $key, ['label' => 'demo']);
+        $digest = $db->query('SELECT fingerprint FROM _relational_migrator_receipts')->fetchColumn();
+        $db->exec('PRAGMA journal_mode = OFF');
+        self::assertSame('off', $db->query('PRAGMA journal_mode')->fetchColumn());
+        try { $maps->put('sqlite-v1', 'items', $key, new Mapping($result->targetId, $digest)); self::fail('Expected journal rejection.'); }
+        catch (ConfigurationException) {
+            self::assertSame(1, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+            self::assertSame(1, $db->query('SELECT COUNT(*) FROM _relational_migrator_receipts')->fetchColumn());
+            self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_id_map')->fetchColumn());
+        }
+        $db->exec('PRAGMA journal_mode = DELETE');
+        self::assertSame(1, (new Migrator($this->source(), $writer, $maps))->run($this->plan())->totals()['recovered']);
+        self::assertSame($result->targetId, $maps->get('sqlite-v1', 'items', $key)?->targetId);
+        self::assertSame(1, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+    }
+    public static function helperKinds(): iterable { yield 'receipts' => [true]; yield 'ID map' => [false]; }
+    #[DataProvider('helperKinds')]
+    public function testReusedAdapterDoesNotInitializeHelpersWithJournalOff(bool $target): void
+    {
+        $db = $this->db();
+        $adapter = $target ? new SqliteTargetWriter($db, []) : new SqliteIdMapStore($db);
+        $db->exec('PRAGMA journal_mode = OFF');
+        try { $adapter->initialize(); self::fail('Expected journal rejection.'); }
+        catch (ConfigurationException) { self::assertSame(0, $db->query("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'")->fetchColumn()); }
+    }
+    public static function rollbackCapableModes(): iterable
+    {
+        foreach (['delete', 'truncate', 'persist', 'memory', 'wal'] as $mode) { yield $mode => [$mode]; }
+    }
+    #[DataProvider('rollbackCapableModes')]
+    public function testSupportedJournalModeRollsBackReceiptFailureThenRetries(string $mode): void
+    {
+        $db = $this->db($this->temporaryDatabase());
+        $setting = $db->query('PRAGMA journal_mode = ' . $mode);
+        self::assertSame($mode, $setting->fetchColumn()); $setting->closeCursor();
+        $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $db->exec("CREATE TRIGGER injected_journal_failure BEFORE INSERT ON _relational_migrator_receipts BEGIN SELECT RAISE(ABORT, 'Injected receipt failure'); END");
+        $migrator = new Migrator($this->source(), $writer, $maps);
+        $failure = $this->failure(fn() => $migrator->run($this->plan()));
+        self::assertInstanceOf(\PDOException::class, $failure->getPrevious());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_receipts')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_id_map')->fetchColumn());
+        self::assertFalse($db->inTransaction());
+        $db->exec('DROP TRIGGER injected_journal_failure');
+        self::assertSame(1, $migrator->run($this->plan())->totals()['inserted']);
+        self::assertSame(1, $migrator->run($this->plan())->totals()['alreadyMapped']);
+        self::assertSame(1, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+    }
     public function testNonExceptionPdoModeIsRejected(): void
     {
         $db = new \PDO('sqlite::memory:', options: [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_SILENT]);

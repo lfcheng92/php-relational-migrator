@@ -9,6 +9,7 @@ final class SqliteIdMapStore implements IdMapStore
     /** Explicit setup, outside the migration. Does not create application tables. */
     public function initialize(): void
     {
+        Sqlite::requireJournal($this->pdo);
         $this->pdo->exec('CREATE TABLE IF NOT EXISTS ' . Sqlite::quote(Sqlite::MAPS) . ' (
             scope TEXT NOT NULL, entity TEXT NOT NULL, source_key TEXT NOT NULL,
             target_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
@@ -28,6 +29,7 @@ final class SqliteIdMapStore implements IdMapStore
     }
     public function put(string $scope, string $entity, SourceKey $key, Mapping $mapping): void
     {
+        Sqlite::requireJournal($this->pdo);
         $statement = $this->pdo->prepare('INSERT INTO ' . Sqlite::quote(Sqlite::MAPS)
             . ' (scope, entity, source_key, target_id, fingerprint) VALUES (?, ?, ?, ?, ?)'
             . ' ON CONFLICT (scope, entity, source_key) DO NOTHING');

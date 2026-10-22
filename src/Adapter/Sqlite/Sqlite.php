@@ -26,8 +26,9 @@ final class Sqlite
         $statement = self::query($pdo, 'PRAGMA journal_mode');
         $mode = $statement->fetchColumn();
         $statement->closeCursor();
-        if (!is_string($mode) || strtolower($mode) === 'off') {
-            throw new ConfigurationException('SQLite journal_mode=OFF cannot satisfy the atomic write contract.');
+        // This guard covers rollback while the process is alive, not power-loss durability.
+        if (!is_string($mode) || !in_array(strtolower($mode), ['delete', 'truncate', 'persist', 'memory', 'wal'], true)) {
+            throw new ConfigurationException('SQLite writes require a rollback-capable journal mode; OFF or unknown modes are unsupported.');
         }
     }
     public static function query(\PDO $pdo, string $sql): \PDOStatement
