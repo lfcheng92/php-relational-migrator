@@ -22,12 +22,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Lfcheng92\\RelationalMigrator\\": "src/"
+            "Lfcheng\\RelationalMigrator\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Lfcheng92\\RelationalMigrator\\Tests\\": "tests/"
+            "Lfcheng\\RelationalMigrator\\Tests\\": "tests/"
         }
     },
     "scripts": {

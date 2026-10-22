@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator;
-use Lfcheng92\RelationalMigrator\Exception\ConfigurationException;
-use Lfcheng92\RelationalMigrator\Internal\Rules;
+namespace Lfcheng\RelationalMigrator;
+use Lfcheng\RelationalMigrator\Exception\ConfigurationException;
+use Lfcheng\RelationalMigrator\Internal\Rules;
 final class MigrationPlan
 {
     /** @var list<Entity> */

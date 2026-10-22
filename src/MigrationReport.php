@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator;
+namespace Lfcheng\RelationalMigrator;
 /** No row values, source IDs, SQL, or exception text are included in reports.
  * @phpstan-type Counts array{seen:int, inserted:int, recovered:int, alreadyMapped:int, skipped:int, failed:int}
  */

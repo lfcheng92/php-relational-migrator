@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Internal;
-use Lfcheng92\RelationalMigrator\Exception\ConfigurationException;
+namespace Lfcheng\RelationalMigrator\Internal;
+use Lfcheng\RelationalMigrator\Exception\ConfigurationException;
 /** @internal */
 final class Rules
 {

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Exception;
-use Lfcheng92\RelationalMigrator\MigrationReport;
+namespace Lfcheng\RelationalMigrator\Exception;
+use Lfcheng\RelationalMigrator\MigrationReport;
 final class MigrationFailed extends \RuntimeException
 {
     public function __construct(

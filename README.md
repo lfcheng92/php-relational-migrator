@@ -35,8 +35,8 @@
 declare(strict_types=1);
 require 'vendor/autoload.php';
 
-use Lfcheng92\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\{
+use Lfcheng\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
+use Lfcheng\RelationalMigrator\Adapter\Memory\{
     ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter
 };
 
@@ -113,7 +113,7 @@ SQLite 实现将应用表 INSERT 与 `_relational_migrator_receipts` 写入放�
 ## SQLite/PDO 接入
 
 ```php
-use Lfcheng92\RelationalMigrator\Adapter\Sqlite\{
+use Lfcheng\RelationalMigrator\Adapter\Sqlite\{
     SqliteSourceReader, SqliteTargetWriter, SqliteIdMapStore, SqliteTable
 };
 

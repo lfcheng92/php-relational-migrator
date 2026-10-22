@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Sqlite;
-use Lfcheng92\RelationalMigrator\{Entity, Contract\SourceReader};
-use Lfcheng92\RelationalMigrator\Exception\ConfigurationException;
+namespace Lfcheng\RelationalMigrator\Adapter\Sqlite;
+use Lfcheng\RelationalMigrator\{Entity, Contract\SourceReader};
+use Lfcheng\RelationalMigrator\Exception\ConfigurationException;
 final class SqliteSourceReader implements SourceReader
 {
     /** @param array<string, string> $tables entity name => source table */

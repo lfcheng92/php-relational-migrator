@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator;
-use Lfcheng92\RelationalMigrator\Contract\{IdMapStore, SourceReader, TargetWriter};
-use Lfcheng92\RelationalMigrator\Exception\{MappingConflict, MigrationFailed, MissingReferenceException, RecordException};
-use Lfcheng92\RelationalMigrator\Internal\Data;
+namespace Lfcheng\RelationalMigrator;
+use Lfcheng\RelationalMigrator\Contract\{IdMapStore, SourceReader, TargetWriter};
+use Lfcheng\RelationalMigrator\Exception\{MappingConflict, MigrationFailed, MissingReferenceException, RecordException};
+use Lfcheng\RelationalMigrator\Internal\Data;
 final class Migrator
 {
     public function __construct(

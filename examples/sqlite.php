@@ -2,8 +2,8 @@
 declare(strict_types=1);
 // Synthetic, in-memory databases only. No DSN, credentials, files, or network required.
 require __DIR__ . '/../vendor/autoload.php';
-use Lfcheng92\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
-use Lfcheng92\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteSourceReader, SqliteTable, SqliteTargetWriter};
+use Lfcheng\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
+use Lfcheng\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteSourceReader, SqliteTable, SqliteTargetWriter};
 
 $source = new PDO('sqlite::memory:', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 $target = new PDO('sqlite::memory:', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);

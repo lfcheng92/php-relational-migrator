@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Contract;
-use Lfcheng92\RelationalMigrator\{Entity, SourceKey, WriteResult};
+namespace Lfcheng\RelationalMigrator\Contract;
+use Lfcheng\RelationalMigrator\{Entity, SourceKey, WriteResult};
 interface TargetWriter
 {
     /** Atomically persist the target row AND its idempotency receipt.

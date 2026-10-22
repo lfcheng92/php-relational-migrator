@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, Reference, SourceKey};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\ArraySourceReader;
-use Lfcheng92\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteSourceReader, SqliteTable, SqliteTargetWriter};
-use Lfcheng92\RelationalMigrator\Exception\{ConfigurationException, MappingConflict, MigrationFailed, RecordException};
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, Reference, SourceKey};
+use Lfcheng\RelationalMigrator\Adapter\Memory\ArraySourceReader;
+use Lfcheng\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteSourceReader, SqliteTable, SqliteTargetWriter};
+use Lfcheng\RelationalMigrator\Exception\{ConfigurationException, MappingConflict, MigrationFailed, RecordException};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 final class SqliteIntegrationTest extends TestCase

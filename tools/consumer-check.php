@@ -72,11 +72,11 @@ try {
 <?php
 declare(strict_types=1);
 require __DIR__ . '/vendor/autoload.php';
-use Lfcheng92\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, Reference, SourceKey};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\ArraySourceReader;
-use Lfcheng92\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteTable, SqliteTargetWriter};
-use Lfcheng92\RelationalMigrator\Contract\IdMapStore;
-use Lfcheng92\RelationalMigrator\Exception\MigrationFailed;
+use Lfcheng\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, Reference, SourceKey};
+use Lfcheng\RelationalMigrator\Adapter\Memory\ArraySourceReader;
+use Lfcheng\RelationalMigrator\Adapter\Sqlite\{SqliteIdMapStore, SqliteTable, SqliteTargetWriter};
+use Lfcheng\RelationalMigrator\Contract\IdMapStore;
+use Lfcheng\RelationalMigrator\Exception\MigrationFailed;
 $file = (new ReflectionClass(Migrator::class))->getFileName();
 if (!is_string($file) || !str_starts_with($file, __DIR__ . '/vendor/lfcheng92/relational-migrator/')) { throw new RuntimeException('Consumer loaded code outside its vendor directory.'); }
 function connection(): PDO { return new PDO('sqlite:' . __DIR__ . '/temporary.sqlite', options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]); }

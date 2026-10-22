@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Internal;
-use Lfcheng92\RelationalMigrator\Exception\RecordException;
+namespace Lfcheng\RelationalMigrator\Internal;
+use Lfcheng\RelationalMigrator\Exception\RecordException;
 /** @internal */
 final class Data
 {

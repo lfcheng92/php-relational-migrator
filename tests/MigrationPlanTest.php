@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Entity, Field, MigrationPlan, Reference};
-use Lfcheng92\RelationalMigrator\Exception\ConfigurationException;
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Entity, Field, MigrationPlan, Reference};
+use Lfcheng\RelationalMigrator\Exception\ConfigurationException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 final class MigrationPlanTest extends TestCase

@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Memory;
-use Lfcheng92\RelationalMigrator\{Entity, Mapping, SourceKey, WriteResult, Contract\TargetWriter};
-use Lfcheng92\RelationalMigrator\Exception\MappingConflict;
-use Lfcheng92\RelationalMigrator\Internal\Data;
+namespace Lfcheng\RelationalMigrator\Adapter\Memory;
+use Lfcheng\RelationalMigrator\{Entity, Mapping, SourceKey, WriteResult, Contract\TargetWriter};
+use Lfcheng\RelationalMigrator\Exception\MappingConflict;
+use Lfcheng\RelationalMigrator\Internal\Data;
 final class InMemoryTargetWriter implements TargetWriter
 {
     /** @var array<string, Mapping> */

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Contract;
-use Lfcheng92\RelationalMigrator\Entity;
+namespace Lfcheng\RelationalMigrator\Contract;
+use Lfcheng\RelationalMigrator\Entity;
 interface SourceReader
 {
     /** Read a stable snapshot in a deterministic order. Must not mutate the source.

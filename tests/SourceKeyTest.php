@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Mapping, SourceKey, WriteResult};
-use Lfcheng92\RelationalMigrator\Exception\RecordException;
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Mapping, SourceKey, WriteResult};
+use Lfcheng\RelationalMigrator\Exception\RecordException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 final class SourceKeyTest extends TestCase

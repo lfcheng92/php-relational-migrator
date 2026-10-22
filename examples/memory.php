@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
-use Lfcheng92\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\{ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter};
+use Lfcheng\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator};
+use Lfcheng\RelationalMigrator\Adapter\Memory\{ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter};
 $source = new ArraySourceReader(['items' => [['old_id' => 'demo-1', 'label' => 'Synthetic item']]]);
 $writer = new InMemoryTargetWriter();
 $maps = new InMemoryIdMapStore();

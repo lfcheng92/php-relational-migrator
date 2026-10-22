@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, MissingReferencePolicy, Reference, SourceKey};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\{ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter};
-use Lfcheng92\RelationalMigrator\Contract\SourceReader;
-use Lfcheng92\RelationalMigrator\Exception\{MappingConflict, MigrationFailed, MissingReferenceException, RecordException};
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Entity, Field, Mapping, MigrationPlan, Migrator, MissingReferencePolicy, Reference, SourceKey};
+use Lfcheng\RelationalMigrator\Adapter\Memory\{ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter};
+use Lfcheng\RelationalMigrator\Contract\SourceReader;
+use Lfcheng\RelationalMigrator\Exception\{MappingConflict, MigrationFailed, MissingReferenceException, RecordException};
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 final class MigratorTest extends TestCase

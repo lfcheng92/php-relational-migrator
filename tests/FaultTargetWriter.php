@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Entity, SourceKey, WriteResult, Contract\TargetWriter};
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Entity, SourceKey, WriteResult, Contract\TargetWriter};
 final class FaultTargetWriter implements TargetWriter
 {
     private bool $armed = true;

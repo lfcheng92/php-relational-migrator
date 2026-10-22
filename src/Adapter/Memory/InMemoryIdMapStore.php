@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Memory;
-use Lfcheng92\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
-use Lfcheng92\RelationalMigrator\Exception\MappingConflict;
+namespace Lfcheng\RelationalMigrator\Adapter\Memory;
+use Lfcheng\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
+use Lfcheng\RelationalMigrator\Exception\MappingConflict;
 final class InMemoryIdMapStore implements IdMapStore
 {
     /** @var array<string, Mapping> */

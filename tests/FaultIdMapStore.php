@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Tests;
-use Lfcheng92\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
+namespace Lfcheng\RelationalMigrator\Tests;
+use Lfcheng\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
 final class FaultIdMapStore implements IdMapStore
 {
     private bool $armed = true;

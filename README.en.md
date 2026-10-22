@@ -34,8 +34,8 @@ Run `composer install --no-plugins --no-scripts` and require `vendor/autoload.ph
 <?php
 declare(strict_types=1);
 require 'vendor/autoload.php';
-use Lfcheng92\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
-use Lfcheng92\RelationalMigrator\Adapter\Memory\{
+use Lfcheng\RelationalMigrator\{Entity, Field, MigrationPlan, Migrator, Reference};
+use Lfcheng\RelationalMigrator\Adapter\Memory\{
     ArraySourceReader, InMemoryIdMapStore, InMemoryTargetWriter
 };
 $plan = new MigrationPlan('snapshot-demo-v1',
@@ -96,7 +96,7 @@ There is no business-data dry run, whole-migration rollback, automatic deletion,
 ## SQLite/PDO adapters
 
 ```php
-use Lfcheng92\RelationalMigrator\Adapter\Sqlite\{
+use Lfcheng\RelationalMigrator\Adapter\Sqlite\{
     SqliteSourceReader, SqliteTargetWriter, SqliteIdMapStore, SqliteTable
 };
 // Separate source and target datasets; both PDO connections use ERRMODE_EXCEPTION.

@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Sqlite;
-use Lfcheng92\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
-use Lfcheng92\RelationalMigrator\Exception\{MappingConflict, RecordException};
+namespace Lfcheng\RelationalMigrator\Adapter\Sqlite;
+use Lfcheng\RelationalMigrator\{Mapping, SourceKey, Contract\IdMapStore};
+use Lfcheng\RelationalMigrator\Exception\{MappingConflict, RecordException};
 final class SqliteIdMapStore implements IdMapStore
 {
     public function __construct(private readonly \PDO $pdo) { Sqlite::check($pdo); Sqlite::requireJournal($pdo); }

@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Sqlite;
-use Lfcheng92\RelationalMigrator\Exception\{ConfigurationException, RecordException};
-use Lfcheng92\RelationalMigrator\Internal\Rules;
+namespace Lfcheng\RelationalMigrator\Adapter\Sqlite;
+use Lfcheng\RelationalMigrator\Exception\{ConfigurationException, RecordException};
+use Lfcheng\RelationalMigrator\Internal\Rules;
 /** @internal */
 final class Sqlite
 {

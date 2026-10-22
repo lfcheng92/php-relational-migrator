@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
-namespace Lfcheng92\RelationalMigrator\Adapter\Sqlite;
-use Lfcheng92\RelationalMigrator\{Entity, SourceKey, WriteResult, Contract\TargetWriter};
-use Lfcheng92\RelationalMigrator\Exception\{ConfigurationException, MappingConflict, RecordException};
-use Lfcheng92\RelationalMigrator\Internal\Data;
+namespace Lfcheng\RelationalMigrator\Adapter\Sqlite;
+use Lfcheng\RelationalMigrator\{Entity, SourceKey, WriteResult, Contract\TargetWriter};
+use Lfcheng\RelationalMigrator\Exception\{ConfigurationException, MappingConflict, RecordException};
+use Lfcheng\RelationalMigrator\Internal\Data;
 final class SqliteTargetWriter implements TargetWriter
 {
     /** @param array<string, SqliteTable> $tables entity name => destination table */

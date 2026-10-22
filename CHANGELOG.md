@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — namespace alignment before public release
+
+- Standardize runtime and development PSR-4 namespaces on `Lfcheng\RelationalMigrator\`.
+- Composer package name stays `lfcheng92/relational-migrator`; repository, behavior, dependencies and license are unchanged.
+- Earlier private-candidate consumers must update imports/FQCNs and regenerate Composer autoload files; no compatibility aliases are provided.
+
 ## Unreleased — SQLite rowid alias guard
 
 - Reject hidden rowid/_rowid_/oid assignment, including case variants, before target mutations.
