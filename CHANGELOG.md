@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — SQLite rowid alias guard
+
+- Reject hidden rowid/_rowid_/oid assignment, including case variants, before target mutations.
+- Use table_xinfo metadata to preserve real declared non-primary-key columns with the same names, including WITHOUT ROWID tables.
+- Verify failed alias mappings leave target rows, receipts and ID maps unchanged.
+
 ## Unreleased — journal contract follow-up
 
 - Recheck supported SQLite journal modes before helper initialization and every ID-map put; reused connections switched to OFF fail before mutation.

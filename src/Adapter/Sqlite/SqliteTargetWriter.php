@@ -31,7 +31,12 @@ final class SqliteTargetWriter implements TargetWriter
         if (count(array_unique($normalizedColumns)) !== count($normalizedColumns)) { throw new ConfigurationException('SQLite column names must be distinct ignoring case.'); }
         $fields = Data::validate($fields);
         $fingerprint = Data::fingerprint($fields);
-        $this->validatePrimaryKey($table);
+        $declaredColumns = $this->validatePrimaryKey($table);
+        foreach ($normalizedColumns as $column) {
+            if (in_array($column, ['rowid', '_rowid_', 'oid'], true) && !in_array($column, $declaredColumns, true)) {
+                throw new ConfigurationException('Explicit assignment to a hidden SQLite rowid alias is unsupported; target IDs must be generated.');
+            }
+        }
         $this->pdo->beginTransaction();
         try {
             $receipt = $this->pdo->prepare('SELECT target_id, fingerprint, destination FROM ' . Sqlite::quote(Sqlite::RECEIPTS)
@@ -75,20 +80,24 @@ final class SqliteTargetWriter implements TargetWriter
             throw $error;
         }
     }
-    private function validatePrimaryKey(SqliteTable $table): void
+    /** @return list<string> Declared names, including generated columns that may shadow rowid aliases. */
+    private function validatePrimaryKey(SqliteTable $table): array
     {
-        $statement = Sqlite::query($this->pdo, 'PRAGMA table_info(' . Sqlite::quote($table->name) . ')');
+        $statement = Sqlite::query($this->pdo, 'PRAGMA table_xinfo(' . Sqlite::quote($table->name) . ')');
         $primary = [];
+        $declared = [];
         while (($column = $statement->fetch(\PDO::FETCH_ASSOC)) !== false) {
             $position = $column['pk'];
             if ((!is_int($position) && !(is_string($position) && preg_match('/\A[0-9]+\z/D', $position) === 1)) || !is_string($column['name'])) {
                 throw new ConfigurationException('Unexpected SQLite table metadata.');
             }
+            $declared[] = strtolower($column['name']);
             if ($position > 0) { $primary[] = $column['name']; }
         }
         $statement->closeCursor();
         if (count($primary) !== 1 || strcasecmp($primary[0], $table->idColumn) !== 0) {
             throw new ConfigurationException('SQLite target ID column must be its single-column primary key.');
         }
+        return $declared;
     }
 }

@@ -126,7 +126,7 @@ $maps->initialize();   // 只创建本包 ID 映射表
 $report = (new Migrator($reader, $writer, $maps))->run($authorsPlan);
 ```
 
-构造器只校验连接与元数据版本，不建表。应用表由调用方事先准备；SQLite 目标必须用单列主键，并由数据库生成非空 int/string ID，不接受在映射字段中显式赋值该 ID 列。库使用 `INSERT ... RETURNING` 获取真实 ID。禁止把内部帮助表当成目标；列名忽略大小写也必须唯一。
+构造器只校验连接与元数据版本，不建表。应用表由调用方事先准备；SQLite 目标必须用单列主键，并由数据库生成非空 int/string ID，不接受在映射字段中显式赋值该 ID 列。`rowid`、`_rowid_`、`oid`（大小写不敏感）如果是隐藏行标识别名也禁止赋值；按 `PRAGMA table_xinfo` 元数据判断，同名真实非主键列仍可正常映射，声明为主键的列始终禁止显式赋值。库使用 `INSERT ... RETURNING` 获取真实 ID。禁止把内部帮助表当成目标；列名忽略大小写也必须唯一。
 
 `SqliteTargetWriter` 自己管理每条事务，拒绝外层已开启的目标事务，不会提交或回滚调用方事务。应用表与凭据表必须位于同一 SQLite 数据库；目标、凭据初始化和每次映射保存都重新读取日志模式，只接受 DELETE / TRUNCATE / PERSIST / MEMORY / WAL；OFF 或未知模式在写入前拒绝，连接初始化后被切换为 OFF 也不能绕过。不要使用会变更返回主键、删除/改写凭据，或产生外部副作用的触发器。目标 schema 的类型亲和性、约束和触发器是调用方职责；库不会复制源列类型或修改目标 schema。
 

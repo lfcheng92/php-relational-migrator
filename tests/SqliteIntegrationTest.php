@@ -205,6 +205,79 @@ final class SqliteIntegrationTest extends TestCase
         $failure = $this->failure(fn() => (new Migrator($this->source(), $writer, $maps))->run($plan));
         self::assertInstanceOf(ConfigurationException::class, $failure->getPrevious());
     }
+    public static function hiddenRowIdAliases(): iterable
+    {
+        foreach (['rowid', 'ROWID', 'RoWiD', '_rowid_', '_ROWID_', '_RoWiD_', 'oid', 'OID', 'OiD'] as $alias) { yield $alias => [$alias]; }
+    }
+    #[DataProvider('hiddenRowIdAliases')]
+    public function testHiddenRowIdAliasCannotSpecifyGeneratedId(string $alias): void
+    {
+        $db = $this->db(); $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $plan = new MigrationPlan('rowid', new Entity('items', ['old_id'], [$alias => Field::value(777), 'label' => Field::from('label')]));
+        $failure = $this->failure(fn() => (new Migrator($this->source(), $writer, $maps))->run($plan));
+        self::assertInstanceOf(ConfigurationException::class, $failure->getPrevious());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_receipts')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_id_map')->fetchColumn());
+        self::assertFalse($db->inTransaction());
+    }
+    public static function shadowedRowIdNames(): iterable
+    {
+        yield 'rowid' => ['rowid', 'RoWiD'];
+        yield '_rowid_' => ['_rowid_', '_ROWID_'];
+        yield 'oid' => ['oid', 'OiD'];
+    }
+    #[DataProvider('shadowedRowIdNames')]
+    public function testDeclaredNonPrimaryKeyRowIdNameRemainsWritable(string $declared, string $mapped): void
+    {
+        $db = $this->db(); $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, "' . $declared . '" TEXT, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $plan = new MigrationPlan('shadowed', new Entity('items', ['old_id'], [$mapped => Field::value('business value'), 'label' => Field::from('label')]));
+        $migrator = new Migrator($this->source(), $writer, $maps);
+        self::assertSame(1, $migrator->run($plan)->totals()['inserted']);
+        self::assertSame('business value', $db->query('SELECT "' . $declared . '" FROM items')->fetchColumn());
+        self::assertSame(1, $maps->get('shadowed', 'items', SourceKey::fromValues([5]))?->targetId);
+        self::assertSame(1, $migrator->run($plan)->totals()['alreadyMapped']);
+    }
+    public static function remainingHiddenAliases(): iterable
+    {
+        yield 'rowid shadow leaves _rowid_' => ['rowid', '_RoWiD_'];
+        yield '_rowid_ shadow leaves oid' => ['_rowid_', 'OID'];
+        yield 'oid shadow leaves rowid' => ['oid', 'ROWID'];
+    }
+    #[DataProvider('remainingHiddenAliases')]
+    public function testShadowingOneNameDoesNotAllowOtherHiddenAliases(string $declared, string $mapped): void
+    {
+        $db = $this->db(); $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, "' . $declared . '" TEXT, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $plan = new MigrationPlan('remaining-alias', new Entity('items', ['old_id'], [$mapped => Field::value(777)]));
+        $failure = $this->failure(fn() => (new Migrator($this->source(), $writer, $maps))->run($plan));
+        self::assertInstanceOf(ConfigurationException::class, $failure->getPrevious());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM _relational_migrator_receipts')->fetchColumn());
+    }
+    public function testAllThreeDeclaredBusinessColumnsRemainWritable(): void
+    {
+        $db = $this->db(); $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, rowid TEXT, _rowid_ TEXT, oid TEXT, label TEXT)'); [$writer, $maps] = $this->adapters($db);
+        $plan = new MigrationPlan('all-shadowed', new Entity('items', ['old_id'], ['ROWID' => Field::value('a'), '_RoWiD_' => Field::value('b'), 'OiD' => Field::value('c')]));
+        self::assertSame(1, (new Migrator($this->source(), $writer, $maps))->run($plan)->totals()['inserted']);
+        self::assertSame(['id' => 1, 'rowid' => 'a', '_rowid_' => 'b', 'oid' => 'c'], $db->query('SELECT id, rowid, _rowid_, oid FROM items')->fetch(\PDO::FETCH_ASSOC));
+    }
+    public function testDeclaredPrimaryKeyNamedRowIdIsStillForbidden(): void
+    {
+        $db = $this->db(); $db->exec('CREATE TABLE items (rowid INTEGER PRIMARY KEY, label TEXT)');
+        $writer = new SqliteTargetWriter($db, ['items' => new SqliteTable('items', 'rowid')]); $writer->initialize(); $maps = new SqliteIdMapStore($db); $maps->initialize();
+        $plan = new MigrationPlan('primary-rowid', new Entity('items', ['old_id'], ['ROWID' => Field::value(777)]));
+        $failure = $this->failure(fn() => (new Migrator($this->source(), $writer, $maps))->run($plan));
+        self::assertInstanceOf(ConfigurationException::class, $failure->getPrevious());
+        self::assertSame(0, $db->query('SELECT COUNT(*) FROM items')->fetchColumn());
+    }
+    public function testWithoutRowIdTableAllowsItsDeclaredBusinessColumn(): void
+    {
+        $db = $this->db(); $db->exec("CREATE TABLE items (id TEXT PRIMARY KEY DEFAULT 'generated-id', rowid TEXT, label TEXT) WITHOUT ROWID"); [$writer, $maps] = $this->adapters($db);
+        $plan = new MigrationPlan('without-rowid', new Entity('items', ['old_id'], ['RoWiD' => Field::value('business value')]));
+        self::assertSame(1, (new Migrator($this->source(), $writer, $maps))->run($plan)->totals()['inserted']);
+        self::assertSame('generated-id', $maps->get('without-rowid', 'items', SourceKey::fromValues([5]))?->targetId);
+        self::assertSame('business value', $db->query('SELECT rowid FROM items')->fetchColumn());
+    }
     public function testCaseInsensitiveDuplicateColumnsAreRejected(): void
     {
         $db = $this->db(); $db->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT)'); [$writer, $maps] = $this->adapters($db);
