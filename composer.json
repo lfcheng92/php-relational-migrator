@@ -1,0 +1,62 @@
+{
+    "name": "lfcheng92/relational-migrator",
+    "description": "Framework-independent relational data migration with durable ID remapping and resumable writes.",
+    "type": "library",
+    "license": "proprietary",
+    "keywords": [
+        "data-migration",
+        "id-remapping",
+        "sqlite",
+        "relational"
+    ],
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "phpstan/phpstan": "^2.1"
+    },
+    "suggest": {
+        "ext-pdo": "Required for the SQLite adapters.",
+        "ext-pdo_sqlite": "Required for SQLite examples and integration tests."
+    },
+    "autoload": {
+        "psr-4": {
+            "Lfcheng92\\RelationalMigrator\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Lfcheng92\\RelationalMigrator\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse --no-progress",
+        "lint": "@php tools/lint.php",
+        "check": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {}
+    },
+    "archive": {
+        "exclude": [
+            "/vendor",
+            "/.git",
+            "/.github",
+            "/build",
+            "/.phpunit.cache",
+            "/composer.lock",
+            "/phpstan.neon",
+            "/phpunit.xml",
+            "/tests",
+            "/tools",
+            "/docs/LOCAL_VALIDATION.md"
+        ]
+    }
+}
