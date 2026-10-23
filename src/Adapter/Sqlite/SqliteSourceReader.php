@@ -13,9 +13,10 @@ final class SqliteSourceReader implements SourceReader
     }
     public function read(Entity $entity): iterable
     {
+        Sqlite::requireExceptionMode($this->pdo);
         $table = $this->tables[$entity->name] ?? throw new ConfigurationException('No SQLite source table configured.');
         $order = implode(', ', array_map(Sqlite::quote(...), $entity->sourceKey));
-        $statement = Sqlite::query($this->pdo, 'SELECT * FROM ' . Sqlite::quote($table) . ' ORDER BY ' . $order);
+        $statement = Sqlite::query($this->pdo, 'SELECT * FROM ' . Sqlite::mainTable($table) . ' ORDER BY ' . $order);
         try {
             while (($row = $statement->fetch(\PDO::FETCH_ASSOC)) !== false) {
                 /** @var array<string, mixed> $row */

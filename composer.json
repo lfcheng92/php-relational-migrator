@@ -2,7 +2,7 @@
     "name": "lfcheng92/relational-migrator",
     "description": "Framework-independent relational data migration with durable ID remapping and resumable writes.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
     "keywords": [
         "data-migration",
         "id-remapping",
@@ -42,7 +42,7 @@
     },
     "config": {
         "sort-packages": true,
-        "allow-plugins": {}
+        "allow-plugins": false
     },
     "archive": {
         "exclude": [
@@ -56,7 +56,23 @@
             "/phpunit.xml",
             "/tests",
             "/tools",
-            "/docs/LOCAL_VALIDATION.md"
+            "/.composer",
+            "/.idea",
+            "/.vscode",
+            "/auth.json",
+            "/.env",
+            "/.env.*",
+            ".DS_Store",
+            "*.log",
+            "*.sqlite",
+            "*.sqlite-*",
+            "*.db",
+            "*.db-*"
         ]
+    },
+    "homepage": "https://github.com/lfcheng92/php-relational-migrator",
+    "support": {
+        "source": "https://github.com/lfcheng92/php-relational-migrator",
+        "issues": "https://github.com/lfcheng92/php-relational-migrator/issues"
     }
 }

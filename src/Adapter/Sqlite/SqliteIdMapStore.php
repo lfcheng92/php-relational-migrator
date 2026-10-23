@@ -10,7 +10,7 @@ final class SqliteIdMapStore implements IdMapStore
     public function initialize(): void
     {
         Sqlite::requireJournal($this->pdo);
-        $this->pdo->exec('CREATE TABLE IF NOT EXISTS ' . Sqlite::quote(Sqlite::MAPS) . ' (
+        Sqlite::exec($this->pdo, 'CREATE TABLE IF NOT EXISTS ' . Sqlite::mainTable(Sqlite::MAPS) . ' (
             scope TEXT NOT NULL, entity TEXT NOT NULL, source_key TEXT NOT NULL,
             target_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
             PRIMARY KEY (scope, entity, source_key)
@@ -18,7 +18,8 @@ final class SqliteIdMapStore implements IdMapStore
     }
     public function get(string $scope, string $entity, SourceKey $key): ?Mapping
     {
-        $statement = $this->pdo->prepare('SELECT target_id, fingerprint FROM ' . Sqlite::quote(Sqlite::MAPS)
+        Sqlite::requireExceptionMode($this->pdo);
+        $statement = Sqlite::prepare($this->pdo, 'SELECT target_id, fingerprint FROM ' . Sqlite::mainTable(Sqlite::MAPS)
             . ' WHERE scope = ? AND entity = ? AND source_key = ?');
         Sqlite::execute($statement, [$scope, $entity, $key->encode()]);
         $row = $statement->fetch(\PDO::FETCH_ASSOC);
@@ -30,12 +31,24 @@ final class SqliteIdMapStore implements IdMapStore
     public function put(string $scope, string $entity, SourceKey $key, Mapping $mapping): void
     {
         Sqlite::requireJournal($this->pdo);
-        $statement = $this->pdo->prepare('INSERT INTO ' . Sqlite::quote(Sqlite::MAPS)
-            . ' (scope, entity, source_key, target_id, fingerprint) VALUES (?, ?, ?, ?, ?)'
-            . ' ON CONFLICT (scope, entity, source_key) DO NOTHING');
-        Sqlite::execute($statement, [$scope, $entity, $key->encode(), json_encode($mapping->targetId, JSON_THROW_ON_ERROR), $mapping->fingerprint]);
-        $statement->closeCursor();
-        $saved = $this->get($scope, $entity, $key);
-        if ($saved === null || !$saved->equals($mapping)) { throw new MappingConflict('ID mapping is immutable.'); }
+        // SAVEPOINT also works within a caller-owned transaction without committing its other work.
+        $savepoint = Sqlite::quote('rm_map_' . bin2hex(random_bytes(8)));
+        Sqlite::exec($this->pdo, 'SAVEPOINT ' . $savepoint);
+        try {
+            $statement = Sqlite::prepare($this->pdo, 'INSERT INTO ' . Sqlite::mainTable(Sqlite::MAPS)
+                . ' (scope, entity, source_key, target_id, fingerprint) VALUES (?, ?, ?, ?, ?)'
+                . ' ON CONFLICT (scope, entity, source_key) DO NOTHING');
+            Sqlite::execute($statement, [$scope, $entity, $key->encode(), json_encode($mapping->targetId, JSON_THROW_ON_ERROR), $mapping->fingerprint]);
+            $statement->closeCursor();
+            $saved = $this->get($scope, $entity, $key);
+            if ($saved === null || !$saved->equals($mapping)) { throw new MappingConflict('ID mapping is immutable and must be persisted unchanged.'); }
+            Sqlite::exec($this->pdo, 'RELEASE SAVEPOINT ' . $savepoint);
+        } catch (\Throwable $error) {
+            try {
+                Sqlite::exec($this->pdo, 'ROLLBACK TO SAVEPOINT ' . $savepoint);
+                Sqlite::exec($this->pdo, 'RELEASE SAVEPOINT ' . $savepoint);
+            } catch (\Throwable) { throw new RecordException('ID-map rollback failed; outcome is uncertain. Discard this connection.', 0, $error); }
+            throw $error;
+        }
     }
 }

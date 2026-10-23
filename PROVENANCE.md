@@ -1,9 +1,13 @@
-# 来源与权属边界 / Provenance boundaries
+# 来源与许可边界 / Provenance and licensing
 
-本实现依据用户给出的通用行为要求独立编写：关联数据迁移、依赖排序、字段转换、ID 映射、外键解析及明确的失败恢复。未读取或复制旧公司项目实现、表结构、凭据、真实业务数据、历史 Git 或任何旧项目的测试夹具。本仓库使用新建的合成实体及临时 SQLite 数据；未从任何已有项目复制 Git 历史。
+本仓库依据通用行为要求独立编写：关联数据迁移、依赖排序、字段转换、ID 重映射、外键解析和明确的失败恢复。根提交建立了新的独立代码与合成测试数据，后续提交记录了改进；未从旧公司项目导入实现、表结构、凭据、真实业务数据或 Git 历史。
 
-通用需求背景仅用于确定要解决的问题，不等同于对旧实现的许可。重新实现本身不自动解决权属、合同、商业秘密或专利问题；不得据此声称已完成法律判断。未来公开之前必须由有权决定的人复核来源及权属，并明确选定可授予的许可。当前 composer.json 标记 proprietary，仅记录未授予开源许可的状态。
+根据上述已记录来源及维护者授权，本仓库原创实现、测试、示例与文档按根目录 LICENSE 中的 MIT 条款提供。Copyright 归属保留为 Lfcheng 及贡献者。本声明记录本仓库的来源和许可范围，不对其他项目的权属作判断，也不授权重新许可公司或第三方代码。不能仅凭“重新实现”就断言其他权利问题已被自动解决。
 
-核心运行时代码没有第三方 Composer 依赖。PHP / PDO / SQLite 是运行环境，保留各自许可；开发工具安装在未纳入源码包的 vendor 中，许可清单见 THIRD_PARTY.md。没有将其擅自改成包自身许可。
+运行核心没有第三方 Composer 包依赖。PHP / PDO / SQLite 是外部运行环境，保留各自许可。开发工具及其传递依赖由 Composer 安装在不纳入源码发行物的 vendor 目录中，保留上游 MIT 或 BSD-3-Clause 条款；锁定版本和许可记录见 THIRD_PARTY.md。本包的 MIT 许可不替换那些项目的版权或许可证。
 
-The implementation was written from generic behavioral requirements, with new synthetic entities and isolated SQLite fixtures. No legacy company implementation, schema, credentials, real business data, or Git history was imported. Requirement background is not a license to legacy material. Reimplementation does not itself settle ownership or contractual rights. A separate rights/provenance review and explicit license decision are required before any public release.
+This repository was independently implemented from generic behavioral requirements, using a new Git history and synthetic fixtures. No legacy company implementation, schema, credentials, business data, or Git history was imported.
+
+The original implementation, tests, examples and documentation are provided under the root MIT license, as authorized by the maintainer. Copyright attribution remains with Lfcheng and contributors. This statement records the boundaries of this repository; it does not decide ownership of other projects or grant rights to company/third-party material. Reimplementation alone is not a general resolution of ownership issues.
+
+There are no runtime Composer packages. PHP, PDO, SQLite and development dependencies retain their own licenses. Development tools are excluded from the source distribution; see THIRD_PARTY.md for the locked dependency inventory.

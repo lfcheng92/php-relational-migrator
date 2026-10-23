@@ -15,7 +15,7 @@ final class SqliteTargetWriter implements TargetWriter
     public function initialize(): void
     {
         Sqlite::requireJournal($this->pdo);
-        $this->pdo->exec('CREATE TABLE IF NOT EXISTS ' . Sqlite::quote(Sqlite::RECEIPTS) . ' (
+        Sqlite::exec($this->pdo, 'CREATE TABLE IF NOT EXISTS ' . Sqlite::mainTable(Sqlite::RECEIPTS) . ' (
             scope TEXT NOT NULL, entity TEXT NOT NULL, source_key TEXT NOT NULL,
             target_id TEXT NOT NULL, fingerprint TEXT NOT NULL, destination TEXT NOT NULL,
             PRIMARY KEY (scope, entity, source_key)
@@ -37,9 +37,9 @@ final class SqliteTargetWriter implements TargetWriter
                 throw new ConfigurationException('Explicit assignment to a hidden SQLite rowid alias is unsupported; target IDs must be generated.');
             }
         }
-        $this->pdo->beginTransaction();
+        if (!$this->pdo->beginTransaction()) { throw new RecordException('SQLite transaction could not start.'); }
         try {
-            $receipt = $this->pdo->prepare('SELECT target_id, fingerprint, destination FROM ' . Sqlite::quote(Sqlite::RECEIPTS)
+            $receipt = Sqlite::prepare($this->pdo, 'SELECT target_id, fingerprint, destination FROM ' . Sqlite::mainTable(Sqlite::RECEIPTS)
                 . ' WHERE scope = ? AND entity = ? AND source_key = ?');
             Sqlite::execute($receipt, [$scope, $entity->name, $key->encode()]);
             $row = $receipt->fetch(\PDO::FETCH_ASSOC);
@@ -49,41 +49,57 @@ final class SqliteTargetWriter implements TargetWriter
                     throw new MappingConflict('Idempotent replay has changed fields or destination.');
                 }
                 $id = Sqlite::decodeId($row['target_id']);
-                $exists = $this->pdo->prepare('SELECT 1 FROM ' . Sqlite::quote($table->name) . ' WHERE ' . Sqlite::quote($table->idColumn) . ' = ?');
-                Sqlite::execute($exists, [$id]);
-                $found = $exists->fetchColumn();
-                $exists->closeCursor();
-                if ($found === false) { throw new MappingConflict('Receipt points to a missing target row; manual reconciliation is required.'); }
-                $this->pdo->commit();
+                Data::id($id);
+                if (!$this->hasExactTargetId($table, $id)) { throw new MappingConflict('Receipt points to a missing or changed target ID; manual reconciliation is required.'); }
+                if (!$this->pdo->commit()) { throw new RecordException('SQLite commit failed; target outcome is uncertain.'); }
                 return new WriteResult($id, false);
             }
-            $sql = 'INSERT INTO ' . Sqlite::quote($table->name);
+            $sql = 'INSERT INTO ' . Sqlite::mainTable($table->name);
             $sql .= $fields === [] ? ' DEFAULT VALUES' : ' (' . implode(', ', array_map(Sqlite::quote(...), array_keys($fields)))
                 . ') VALUES (' . implode(', ', array_fill(0, count($fields), '?')) . ')';
-            $insert = $this->pdo->prepare($sql . ' RETURNING ' . Sqlite::quote($table->idColumn));
+            $insert = Sqlite::prepare($this->pdo, $sql . ' RETURNING ' . Sqlite::quote($table->idColumn));
             Sqlite::execute($insert, array_values($fields));
             $id = $insert->fetchColumn();
             $insert->closeCursor();
             if (!is_int($id) && !is_string($id)) { throw new RecordException('Target must generate a non-null integer or string primary key.'); }
             Data::id($id);
-            $save = $this->pdo->prepare('INSERT INTO ' . Sqlite::quote(Sqlite::RECEIPTS)
+            $save = Sqlite::prepare($this->pdo, 'INSERT INTO ' . Sqlite::mainTable(Sqlite::RECEIPTS)
                 . ' (scope, entity, source_key, target_id, fingerprint, destination) VALUES (?, ?, ?, ?, ?, ?)');
             Sqlite::execute($save, [$scope, $entity->name, $key->encode(), json_encode($id, JSON_THROW_ON_ERROR), $fingerprint, $table->identity()]);
             $save->closeCursor();
-            $this->pdo->commit();
+            $this->verifyWrite($scope, $entity, $key, $table, $id, $fingerprint);
+            if (!$this->pdo->commit()) { throw new RecordException('SQLite commit failed; target outcome is uncertain.'); }
             return new WriteResult($id, true);
         } catch (\Throwable $error) {
             if ($this->pdo->inTransaction()) {
-                try { $this->pdo->rollBack(); }
+                try { if (!$this->pdo->rollBack()) { throw new RecordException('SQLite rollback returned failure.'); } }
                 catch (\Throwable) { throw new RecordException('SQLite rollback failed; target outcome is uncertain.', 0, $error); }
             }
             throw $error;
         }
     }
+    private function hasExactTargetId(SqliteTable $table, int|string $id): bool
+    {
+        $query = Sqlite::prepare($this->pdo, 'SELECT ' . Sqlite::quote($table->idColumn) . ' FROM ' . Sqlite::mainTable($table->name)
+            . ' WHERE ' . Sqlite::quote($table->idColumn) . ' = ?');
+        Sqlite::execute($query, [$id]); $found = $query->fetchColumn(); $query->closeCursor();
+        return $found === $id;
+    }
+    private function verifyWrite(string $scope, Entity $entity, SourceKey $key, SqliteTable $table, int|string $id, string $fingerprint): void
+    {
+        $query = Sqlite::prepare($this->pdo, 'SELECT target_id, fingerprint, destination FROM ' . Sqlite::mainTable(Sqlite::RECEIPTS)
+            . ' WHERE scope = ? AND entity = ? AND source_key = ?');
+        Sqlite::execute($query, [$scope, $entity->name, $key->encode()]); $row = $query->fetch(\PDO::FETCH_ASSOC); $query->closeCursor();
+        if ($row === false || $row['fingerprint'] !== $fingerprint || $row['destination'] !== $table->identity()
+            || Sqlite::decodeId($row['target_id']) !== $id) {
+            throw new RecordException('SQLite receipt was ignored, removed or changed; target write was not committed.');
+        }
+        if (!$this->hasExactTargetId($table, $id)) { throw new RecordException('SQLite target row was removed or its ID changed; target write was not committed.'); }
+    }
     /** @return list<string> Declared names, including generated columns that may shadow rowid aliases. */
     private function validatePrimaryKey(SqliteTable $table): array
     {
-        $statement = Sqlite::query($this->pdo, 'PRAGMA table_xinfo(' . Sqlite::quote($table->name) . ')');
+        $statement = Sqlite::query($this->pdo, 'PRAGMA main.table_xinfo(' . Sqlite::quote($table->name) . ')');
         $primary = [];
         $declared = [];
         while (($column = $statement->fetch(\PDO::FETCH_ASSOC)) !== false) {

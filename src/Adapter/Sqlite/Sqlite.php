@@ -10,10 +10,7 @@ final class Sqlite
     public const MAPS = '_relational_migrator_id_map';
     public static function check(\PDO $pdo): void
     {
-        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) !== 'sqlite'
-            || $pdo->getAttribute(\PDO::ATTR_ERRMODE) !== \PDO::ERRMODE_EXCEPTION) {
-            throw new ConfigurationException('SQLite adapters require PDO SQLite with ERRMODE_EXCEPTION.');
-        }
+        self::requireExceptionMode($pdo);
         $statement = self::query($pdo, 'SELECT sqlite_version()');
         $version = $statement->fetchColumn();
         $statement->closeCursor();
@@ -21,9 +18,17 @@ final class Sqlite
             throw new ConfigurationException('SQLite 3.35.0+ is required for INSERT RETURNING.');
         }
     }
+    public static function requireExceptionMode(\PDO $pdo): void
+    {
+        if ($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME) !== 'sqlite'
+            || $pdo->getAttribute(\PDO::ATTR_ERRMODE) !== \PDO::ERRMODE_EXCEPTION) {
+            throw new ConfigurationException('SQLite adapters require PDO SQLite with ERRMODE_EXCEPTION.');
+        }
+    }
     public static function requireJournal(\PDO $pdo): void
     {
-        $statement = self::query($pdo, 'PRAGMA journal_mode');
+        self::requireExceptionMode($pdo);
+        $statement = self::query($pdo, 'PRAGMA main.journal_mode');
         $mode = $statement->fetchColumn();
         $statement->closeCursor();
         // This guard covers rollback while the process is alive, not power-loss durability.
@@ -36,6 +41,20 @@ final class Sqlite
         $statement = $pdo->query($sql);
         if ($statement === false) { throw new RecordException('SQLite query failed.'); }
         return $statement;
+    }
+    public static function prepare(\PDO $pdo, string $sql): \PDOStatement
+    {
+        $statement = $pdo->prepare($sql);
+        if ($statement === false) { throw new RecordException('SQLite prepare failed.'); }
+        return $statement;
+    }
+    public static function exec(\PDO $pdo, string $sql): void
+    {
+        if ($pdo->exec($sql) === false) { throw new RecordException('SQLite execution failed.'); }
+    }
+    public static function mainTable(string $name): string
+    {
+        return '"main".' . self::quote($name);
     }
     public static function quote(string $identifier): string
     {
@@ -55,9 +74,9 @@ final class Sqlite
                 };
                 // PDO has no float parameter type. Use an explicit round-trip, locale-independent decimal.
                 $bound = is_float($value) ? sprintf('%.17H', $value) : $value;
-                $statement->bindValue($index + 1, $bound, $type);
+                if (!$statement->bindValue($index + 1, $bound, $type)) { throw new RecordException('SQLite parameter binding failed.'); }
             }
-            $statement->execute();
+            if (!$statement->execute()) { throw new RecordException('SQLite statement execution failed.'); }
         } catch (\Throwable $error) {
             // PDO exceptions may retain statement arguments in their stack traces.
             // Finalize a failed SQLite statement before rollback/retry on this connection.

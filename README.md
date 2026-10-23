@@ -4,7 +4,7 @@
 
 框架无关的 PHP 关联**数据**迁移包：按依赖顺序读取实体、转换字段、写入目标，持久化旧键与新 ID 的映射，再解析跨实体外键。它不管理数据库 schema 版本。
 
-当前为本地首版，尚未创建远程仓库、发布 Packagist 或授予开源许可。包名预留为 `lfcheng92/relational-migrator`。来源与许可边界见 [PROVENANCE.md](PROVENANCE.md)、[LICENSE](LICENSE) 和 [THIRD_PARTY.md](THIRD_PARTY.md)；重新实现本身不自动解决权属问题。
+包名为 `lfcheng92/relational-migrator`，PSR-4 命名空间为 `Lfcheng\RelationalMigrator`。原创代码采用 [MIT 许可](LICENSE)，来源与第三方边界见 [PROVENANCE.md](PROVENANCE.md) 和 [THIRD_PARTY.md](THIRD_PARTY.md)。目前尚未发布 Packagist。
 
 ## 环境与本地安装
 
@@ -126,13 +126,17 @@ $maps->initialize();   // 只创建本包 ID 映射表
 $report = (new Migrator($reader, $writer, $maps))->run($authorsPlan);
 ```
 
-构造器只校验连接与元数据版本，不建表。应用表由调用方事先准备；SQLite 目标必须用单列主键，并由数据库生成非空 int/string ID，不接受在映射字段中显式赋值该 ID 列。`rowid`、`_rowid_`、`oid`（大小写不敏感）如果是隐藏行标识别名也禁止赋值；按 `PRAGMA table_xinfo` 元数据判断，同名真实非主键列仍可正常映射，声明为主键的列始终禁止显式赋值。库使用 `INSERT ... RETURNING` 获取真实 ID。禁止把内部帮助表当成目标；列名忽略大小写也必须唯一。
+构造器只校验连接与元数据版本，不建表。SQLite 适配器明确使用当前连接的 `main` schema；不接受 TEMP 或附加数据库作为应用目标，也不会被同名 TEMP 表改变读写位置。源读取同样限定在 `main`。应用表由调用方事先准备；SQLite 目标必须用单列主键，并由数据库生成非空 int/string ID，不接受在映射字段中显式赋值该 ID 列。`rowid`、`_rowid_`、`oid`（大小写不敏感）如果是隐藏行标识别名也禁止赋值；按 `PRAGMA table_xinfo` 元数据判断，同名真实非主键列仍可正常映射，声明为主键的列始终禁止显式赋值。库使用 `INSERT ... RETURNING` 获取真实 ID。禁止把内部帮助表当成目标；列名忽略大小写也必须唯一。
+
+`SqliteTargetWriter` 在提交前重新核验目标 ID 确实存在，且凭据中的 ID、指纹和目的表保持一致。触发器忽略、删除或篡改这些写入会使该条事务失败并回滚。它不逐字段验证数据库类型亲和性、字段规范化或任意触发器的业务副作用；此类行为仍须由应用审查。
 
 `SqliteTargetWriter` 自己管理每条事务，拒绝外层已开启的目标事务，不会提交或回滚调用方事务。应用表与凭据表必须位于同一 SQLite 数据库；目标、凭据初始化和每次映射保存都重新读取日志模式，只接受 DELETE / TRUNCATE / PERSIST / MEMORY / WAL；OFF 或未知模式在写入前拒绝，连接初始化后被切换为 OFF 也不能绕过。不要使用会变更返回主键、删除/改写凭据，或产生外部副作用的触发器。目标 schema 的类型亲和性、约束和触发器是调用方职责；库不会复制源列类型或修改目标 schema。
 
 **进程内回滚与崩溃/断电持久性不同。** 日志模式检查及故障注入测试验证的是进程仍在运行时，SQL/映射错误的回滚与重试；本包不更改 `journal_mode`、`synchronous` 或硬件/文件系统设置，也未验证断电恢复。MEMORY 日志仅在 RAM 中，可用于可丢弃的测试数据；文件数据库使用它时，事务中途进程崩溃可能破坏数据库，不能据正常回滚测试宣称崩溃安全。`:memory:` 数据库在连接/进程结束后丢失数据。磁盘持久性还取决于同步设置、操作系统、存储设备和故障模型；例如 `synchronous=OFF` 不提供断电持久性保证。需要可恢复导入时，由应用选择合适的磁盘日志及同步配置，并对自己的环境另行验证。依据见 [SQLite journal_mode](https://www.sqlite.org/pragma.html#pragma_journal_mode) 和 [synchronous](https://www.sqlite.org/pragma.html#pragma_synchronous)。
 
-持久化映射表 `_relational_migrator_id_map` 保存旧键 JSON、新 ID JSON 和指纹。ID 类型与复合键顺序得到保留，映射不可被不同内容覆盖。映射、凭据和源键可能敏感，须限制数据库文件权限与备份访问，详见 [SECURITY.md](SECURITY.md)。
+PDO 连接必须保持 `ERRMODE_EXCEPTION`；每次操作会复核此设置，并显式检查执行/事务失败返回值。库不通过静默错误模式伪装成功。
+
+持久化映射表 `_relational_migrator_id_map` 保存旧键 JSON、新 ID JSON 和指纹。ID 类型与复合键顺序得到保留，映射不可被不同内容覆盖。每次 put 使用保存点覆盖插入与回读校验；校验失败不会留下本次错误映射。若调用方已开启映射连接的事务，保存点不会提交或回滚调用方其他操作，最终提交仍由调用方负责。映射、凭据和源键可能敏感，须限制数据库文件权限与备份访问，详见 [SECURITY.md](SECURITY.md)。
 
 ## 报告与异常
 
@@ -164,10 +168,10 @@ php tools/consumer-check.php
 
 `composer check` 执行语法检查、PHPStan max 和 PHPUnit。独立消费者工具会：生成并扫描源码 zip → 提取为无 vendor 的快照 → 关闭网络和 Packagist → 在干净目录 Composer path 复制安装且不装开发依赖 → 删除源快照 → 新 PHP 进程校验复合键、真实 SQLite 外键、目标提交后映射失败的恢复及重复执行 → 清理临时文件。如 Composer 非 PATH 命令，可设置 `COMPOSER_BINARY` 为本机 Composer 可执行文件或 phar 路径。
 
-实际执行记录见 [docs/LOCAL_VALIDATION.md](docs/LOCAL_VALIDATION.md)。CI 覆盖配置为 PHP 8.2 / 8.3 / 8.4 / 8.5；没有远程仓库时尚未运行，不应将其视为已验证矩阵。
+CI 配置覆盖 PHP 8.2 / 8.3 / 8.4 / 8.5，版本配置不等同于实跑结果。测试包含真实临时 SQLite 文件、目标提交后独立进程退出恢复、同一源键的双进程竞争、触发器忽略/回撤/篡改、复合键持久化和连接配置变化；这些测试不构成生产、断电或所有平台保证。
 
-## 发布边界
+## 维护与许可
 
-参见 [CHANGELOG.md](CHANGELOG.md) 和 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)。本地验证、后续私有上传、未来公开发布是三个独立关口；单测通过不会触发公开仓库、开源许可证或 Packagist 发布。
+变更见 [CHANGELOG.md](CHANGELOG.md)，安全报告见 [SECURITY.md](SECURITY.md)。开发检查使用完整 Git 工作副本；Composer 发行归档按配置排除测试工具和开发缓存。源码与测试不是“绝无 bug”的保证；发布前应在实际使用的 PHP、数据库配置和故障模型中验证。CI 只执行检查，不会自动改变仓库可见性或发布 Packagist。
 
 设计所用通用文档：[Composer schema](https://getcomposer.org/doc/04-schema.md)、[PDO 事务](https://www.php.net/manual/en/pdo.transactions.php)、[SQLite 事务](https://www.sqlite.org/lang_transaction.html)。

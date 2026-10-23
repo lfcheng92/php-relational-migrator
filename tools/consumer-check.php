@@ -40,13 +40,18 @@ try {
     for ($i = 0; $i < $zip->numFiles; ++$i) {
         $name = $zip->getNameIndex($i);
         if (!is_string($name) || str_contains($name, '..') || str_starts_with($name, '/')) { throw new RuntimeException('Unsafe archive path.'); }
-        if (preg_match('~(^|/)(vendor|node_modules|build|\.git|\.env[^/]*|auth\.json)(/|$)|\.(log|sqlite|db)(-|$)~i', $name)) {
+        if (preg_match('~(^|/)(vendor|node_modules|build|\.git|\.composer|\.idea|\.vscode|\.DS_Store|\.env[^/]*|auth\.json)(/|$)|\.(log|sqlite|db)(-|$)~i', $name)) {
             throw new RuntimeException('Unwanted runtime/development data in source archive: ' . $name);
         }
         $content = $zip->getFromIndex($i);
+        if (is_string($content) && is_file($packageRoot . '/' . $name)
+            && !hash_equals(hash_file('sha256', $packageRoot . '/' . $name), hash('sha256', $content))) {
+            throw new RuntimeException('Archive differs from the saved source: ' . $name);
+        }
         if (is_string($content)) {
             if (str_contains($content, $packageRoot)) { throw new RuntimeException('Development directory leaked into archive: ' . $name); }
-            if (preg_match('/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}/', $content)) {
+            if (preg_match('~/+(?:Users|home)/+[^/\s]+/+~', str_replace(chr(92), '/', $content))) { throw new RuntimeException('Machine-specific home path in archive: ' . $name); }
+            if (preg_match('/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:AKIA|ASIA)[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{50,}/', $content)) {
                 throw new RuntimeException('Potential credential detected in source archive: ' . $name);
             }
         }
